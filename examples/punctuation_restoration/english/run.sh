@@ -14,7 +14,7 @@ echo "checkpoint name ${ckpt}"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # prepare data
-    bash ./local/data.sh || exit -1
+    bash ./local/data.sh ${conf_path}|| exit -1
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
