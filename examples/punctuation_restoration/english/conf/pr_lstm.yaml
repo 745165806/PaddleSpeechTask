@@ -1,13 +1,25 @@
 # https://yaml.org/type/float.html
 data:
   language: english
-  raw_path: data/raw/LREC_converted  #path to raw dataset
-  save_path: data/dataset/lrec  #path to save dataset
-  glove_path: 840B  #glove embedding name
+  raw_path: /mnt/mahaoxin/PaddleSpeechTask/data/english/LREC_converted  #path to raw dataset
+  save_path: data/lrec  #path to save dataset
+  glove_path: /mnt/mahaoxin/PaddleSpeechTask/data/english/glove.840B.300d.txt #glove embedding name
+  glove_name: 840B
+  vocab: data/lrec/vocab.json
+  train_set: data/lrec/train.json
+  dev_set: data/lrec/dev.json
+  dev_text: /mnt/mahaoxin/PaddleSpeechTask/data/english/LREC_converted/dev.txt
+  ref_set: data/lrec/ref.json
+  ref_text: /mnt/mahaoxin/PaddleSpeechTask/data/english/LREC_converted/ref.txt
+  asr_set: data/lrec/asr.json
+  asr_text": /mnt/mahaoxin/PaddleSpeechTask/data/english/LREC_converted/asr.txt
   max_vocab_size: 50000
   max_sequence_len: 200
   min_word_count: 1
   min_char_count: 10
+  use_pretrained: False
+  
+  pretrained_emb: data/lrec/glove_emb.npz
 
 collator:
   mean_std_filepath: data/mean_std.json
