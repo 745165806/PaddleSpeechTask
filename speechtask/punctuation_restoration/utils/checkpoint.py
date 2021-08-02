@@ -20,8 +20,8 @@ import paddle
 from paddle import distributed as dist
 from paddle.optimizer import Optimizer
 
-from deepspeech.utils import mp_tools
-from deepspeech.utils.log import Log
+from speechtask.punctuation_restoration.utils import mp_tools
+from speechtask.punctuation_restoration.utils.log import Log
 
 logger = Log(__name__).getlog()
 

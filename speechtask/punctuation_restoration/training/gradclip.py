@@ -16,7 +16,7 @@ from paddle.fluid import core
 from paddle.fluid import layers
 from paddle.fluid.dygraph import base as imperative_base
 
-from deepspeech.utils.log import Log
+from speechtask.punctuation_restoration.utils.log import Log
 
 __all__ = ["ClipGradByGlobalNormWithLog"]
 

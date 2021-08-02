@@ -18,7 +18,7 @@ from paddle import distributed as dist
 from paddle.io import BatchSampler
 from paddle.io import DistributedBatchSampler
 
-from deepspeech.utils.log import Log
+from speechtask.punctuation_restoration.utils.log import Log
 
 __all__ = [
     "SortagradDistributedBatchSampler",

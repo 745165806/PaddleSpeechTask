@@ -11,26 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Trainer for DeepSpeech2 model."""
-from paddle import distributed as dist
+"""Evaluation for model."""
 
-from deepspeech.exps.deepspeech2.config import get_cfg_defaults
-from deepspeech.exps.deepspeech2.model import DeepSpeech2Trainer as Trainer
-from deepspeech.training.cli import default_argument_parser
-from deepspeech.utils.utility import print_arguments
-
+from speechtask.punctuation_restoration.training.trainer import Tester
+from speechtask.punctuation_restoration.utils.default_parser import default_argument_parser
+from speechtask.punctuation_restoration.utils.utility import print_arguments
+import yaml
 
 def main_sp(config, args):
-    exp = Trainer(config, args)
+    exp = Tester(config, args)
     exp.setup()
-    exp.run()
+    exp.run_test()
 
 
 def main(config, args):
-    if args.device == "gpu" and args.nprocs > 1:
-        dist.spawn(main_sp, args=(config, args), nprocs=args.nprocs)
-    else:
-        main_sp(config, args)
+    main_sp(config, args)
 
 
 if __name__ == "__main__":
@@ -39,12 +34,9 @@ if __name__ == "__main__":
     print_arguments(args, globals())
 
     # https://yaml.org/type/float.html
-    config = get_cfg_defaults()
-    if args.config:
-        config.merge_from_file(args.config)
-    if args.opts:
-        config.merge_from_list(args.opts)
-    config.freeze()
+    with open(args.config,"r") as f:
+        config= yaml.load(f,Loader=yaml.FullLoader)
+
     print(config)
     if args.dump_config:
         with open(args.dump_config, 'w') as f:

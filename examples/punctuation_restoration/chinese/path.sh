@@ -9,6 +9,5 @@ export PYTHONPATH=${MAIN_ROOT}:${PYTHONPATH}
 
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib/
 
-export MODEL=lstm
 
-export BIN_DIR=${MAIN_ROOT}/deepspeech/exps/${MODEL}/bin
+export BIN_DIR=${MAIN_ROOT}/speechtask/punctuation_restoration/bin

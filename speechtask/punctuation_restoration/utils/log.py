@@ -16,7 +16,7 @@ import logging
 import os
 import socket
 import sys
-import time
+import datetime
 
 FORMAT_STR = '[%(levelname)s %(asctime)s %(filename)s:%(lineno)d] %(message)s'
 DATE_FMT_STR = '%Y/%m/%d %H:%M:%S'
@@ -112,7 +112,7 @@ class Log():
         actual_log_dir, file_prefix, symlink_prefix = find_log_dir_and_names(
             program_name=None, log_dir=self.log_dir)
 
-        basename = '%s.DEBUG.%Y-%m-%d-%H-%M-%S' % (file_prefix, time.localtime())
+        basename = '%s.DEBUG.%s' % (file_prefix, str(datetime.date.today()))
         filename = os.path.join(actual_log_dir, basename)
         if Log.log_name is None:
             Log.log_name = filename
