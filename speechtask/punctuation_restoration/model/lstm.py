@@ -12,8 +12,8 @@ import paddle.nn.initializer as I
 class RnnLm(nn.Layer):
     def __init__(self,
                  vocab_size,
+                 punc_size,
                  hidden_size,
-                 batch_size,
                  num_layers=1,
                  init_scale=0.1,
                  dropout=0.0):
@@ -21,8 +21,7 @@ class RnnLm(nn.Layer):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.init_scale = init_scale
-        self.batch_size = batch_size
-        self.reset_states()
+        self.punc_size = punc_size
 
         self.embedder = nn.Embedding(
             vocab_size,
@@ -42,33 +41,28 @@ class RnnLm(nn.Layer):
 
         self.fc = nn.Linear(
             hidden_size,
-            vocab_size,
+            punc_size,
             weight_attr=paddle.ParamAttr(initializer=I.Uniform(
                 low=-init_scale, high=init_scale)),
             bias_attr=paddle.ParamAttr(initializer=I.Uniform(
                 low=-init_scale, high=init_scale)))
 
         self.dropout = nn.Dropout(p=dropout)
+        self.softmax = nn.Softmax()
 
     def forward(self, inputs):
         x = inputs
         x_emb = self.embedder(x)
         x_emb = self.dropout(x_emb)
 
-        y, (self.hidden, self.cell) = self.lstm(x_emb, (self.hidden, self.cell))
-        (self.hidden, self.cell) = tuple(
-            [item.detach() for item in (self.hidden, self.cell)])
+        y, (_, _) = self.lstm(x_emb)
+
         y = self.dropout(y)
         y = self.fc(y)
-        return y
+        y = paddle.reshape(y, shape=[-1,self.punc_size])
+        logit = self.softmax(y)
+        return y, logit
 
-    def reset_states(self):
-        self.hidden = paddle.zeros(
-            shape=[self.num_layers, self.batch_size, self.hidden_size],
-            dtype='float32')
-        self.cell = paddle.zeros(
-            shape=[self.num_layers, self.batch_size, self.hidden_size],
-            dtype='float32')
 
 
 class CrossEntropyLossForLm(nn.Layer):
@@ -84,9 +78,4 @@ class CrossEntropyLossForLm(nn.Layer):
         loss = paddle.sum(loss)
         return loss
 
-
-class UpdateModel(paddle.callbacks.Callback):
-    # This callback reset model hidden states and update learning rate before each epoch begins 
-    def on_epoch_begin(self, epoch=None, logs=None):
-        self.model.network.reset_states()
         

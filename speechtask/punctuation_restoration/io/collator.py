@@ -18,13 +18,13 @@ from typing import Optional
 import numpy as np
 from yacs.config import CfgNode
 
-from deepspeech.frontend.augmentor.augmentation import AugmentationPipeline
-from deepspeech.frontend.featurizer.speech_featurizer import SpeechFeaturizer
-from deepspeech.frontend.normalizer import FeatureNormalizer
-from deepspeech.frontend.speech import SpeechSegment
-from deepspeech.frontend.utility import IGNORE_ID
-from deepspeech.io.utility import pad_sequence
-from deepspeech.utils.log import Log
+from speechtask.punctuation_restoration.frontend.augmentor.augmentation import AugmentationPipeline
+from speechtask.punctuation_restoration.frontend.featurizer.speech_featurizer import SpeechFeaturizer
+from speechtask.punctuation_restoration.frontend.normalizer import FeatureNormalizer
+from speechtask.punctuation_restoration.frontend.speech import SpeechSegment
+from speechtask.punctuation_restoration.frontend.utility import IGNORE_ID
+from speechtask.punctuation_restoration.io.utility import pad_sequence
+from speechtask.punctuation_restoration.utils.log import Log
 
 __all__ = ["SpeechCollator"]
 

@@ -14,10 +14,10 @@
 import numpy as np
 from paddle.io import DataLoader
 
-from deepspeech.io.collator import SpeechCollator
-from deepspeech.io.dataset import ManifestDataset
-from deepspeech.io.sampler import SortagradBatchSampler
-from deepspeech.io.sampler import SortagradDistributedBatchSampler
+# from speechtask.punctuation_restoration.io.collator import SpeechCollator
+from speechtask.punctuation_restoration.io.dataset import PuncDataset
+from speechtask.punctuation_restoration.io.sampler import SortagradBatchSampler
+from speechtask.punctuation_restoration.io.sampler import SortagradDistributedBatchSampler
 
 
 def create_dataloader(manifest_path,
