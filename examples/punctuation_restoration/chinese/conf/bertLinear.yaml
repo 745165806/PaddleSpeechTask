@@ -12,6 +12,10 @@ data:
   shuffle_method: batch_shuffle
   num_workers: 0
 
+checkpoint:
+  kbest_n: 5
+  latest_n: 3
+
 model_type: BertChLinear
 model_params:
   output_size: 4
@@ -25,6 +29,9 @@ training:
   weight_decay: !!float 1e-06
   global_grad_clip: 5.0
   log_interval: 10
+  log_path: /data4/mahaoxin/PaddleSpeechTask/examples/punctuation_restoration/chinese/log0808.txt
 
-
+testing:
+  log_interval: 10
+  log_path: /data4/mahaoxin/PaddleSpeechTask/examples/punctuation_restoration/chinese/log0808.txt
 

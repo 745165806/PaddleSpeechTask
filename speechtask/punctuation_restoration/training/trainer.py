@@ -20,34 +20,41 @@ from paddle import distributed as dist
 from tensorboardX import SummaryWriter
 import os
 from collections import defaultdict
+from sklearn.metrics import classification_report,precision_recall_fscore_support
+import pandas as pd
+import logging
 
-from speechtask.punctuation_restoration.utils import checkpoint
+from speechtask.punctuation_restoration.utils.checkpoint import Checkpoint
 from speechtask.punctuation_restoration.utils import mp_tools
-from speechtask.punctuation_restoration.utils.log import Log
 from speechtask.punctuation_restoration.model.lstm import RnnLm
-from speechtask.punctuation_restoration.io.dataset import PuncDataset
-from speechtask.punctuation_restoration.io.sampler import SortagradBatchSampler
-from speechtask.punctuation_restoration.io.sampler import SortagradDistributedBatchSampler
-from speechtask.punctuation_restoration.training.gradclip import ClipGradByGlobalNormWithLog
-from speechtask.punctuation_restoration.utils import error_rate
+from speechtask.punctuation_restoration.model.blstm import BiLSTM
+from speechtask.punctuation_restoration.model.BertChLinear import BertChineseLinearPunc
+from speechtask.punctuation_restoration.io.dataset import PuncDataset, PuncDatasetFromBertTokenizer
 from speechtask.punctuation_restoration.utils import layer_tools
-from speechtask.punctuation_restoration.utils import mp_tools
-from speechtask.punctuation_restoration.utils.log import Log
 from paddle.io import DataLoader
 import numpy as np
+from sklearn.metrics import classification_report
 
 
 __all__ = ["Trainer"]
 
-logger = Log(__name__).getlog()
+
 
 DefinedClassifier = {
     "lstm": RnnLm,
+    "blstm": BiLSTM,
+    "BertChLinear": BertChineseLinearPunc
 }
 
 DefinedLoss = {
     "ce": nn.CrossEntropyLoss,  
 }
+
+DefinedDataset = {
+    'PuncCh': PuncDataset,
+    'Bert': PuncDatasetFromBertTokenizer,
+}
+
 
 class Trainer():
     """
@@ -119,6 +126,7 @@ class Trainer():
     def setup(self):
         """Setup the experiment.
         """
+        self.setup_logger()
         paddle.set_device(self.args.device)
         if self.parallel:
             self.init_parallel()
@@ -132,9 +140,10 @@ class Trainer():
 
         self.setup_dataloader()
         
+        
         self.iteration = 0
         self.epoch = 0
-
+        
     @property
     def parallel(self):
         """A flag indicating whether the experiment should run with 
@@ -162,7 +171,7 @@ class Trainer():
             "epoch": self.epoch,
             "lr": self.optimizer.get_lr()
         })
-        checkpoint.save_parameters(self.checkpoint_dir, self.iteration
+        self.checkpointer.add_checkpoint(self.checkpoint_dir, self.iteration
                                    if tag is None else tag, self.model,
                                    self.optimizer, infos)
 
@@ -174,7 +183,7 @@ class Trainer():
         resume training.
         """
         scratch = None
-        infos = checkpoint.load_parameters(
+        infos = self.checkpointer.load_parameters(
             self.model,
             self.optimizer,
             checkpoint_dir=self.checkpoint_dir,
@@ -211,9 +220,11 @@ class Trainer():
         if self.parallel:
             self.train_loader.batch_sampler.set_epoch(self.epoch)
 
-        logger.info(f"Train Total Examples: {len(self.train_loader.dataset)}")
+        self.logger.info(f"Train Total Examples: {len(self.train_loader.dataset)}")
         while self.epoch < self.config["training"]["n_epoch"]:
             self.model.train()
+            self.total_label=[]
+            self.total_predict=[]
             try:
                 data_start_time = time.time()
                 for batch_index, batch in enumerate(self.train_loader):
@@ -227,8 +238,10 @@ class Trainer():
                     msg += "data time: {:>.3f}s, ".format(dataload_time)
                     self.train_batch(batch_index, batch, msg)
                     data_start_time = time.time()
+                t = classification_report(self.total_label, self.total_predict, target_names=['konge', '，', '。', '？'])
+                print(t)
             except Exception as e:
-                logger.error(e)
+                self.logger.error(e)
                 raise e
 
             total_loss, num_seen_utts = self.valid()
@@ -243,7 +256,7 @@ class Trainer():
             else:
                 cv_loss = total_loss / num_seen_utts
 
-            logger.info(
+            self.logger.info(
                 "Epoch {} Val info val_loss {}".format(self.epoch, cv_loss))
             if self.visualizer:
                 self.visualizer.add_scalars(
@@ -266,7 +279,7 @@ class Trainer():
             exit(-1)
         finally:
             self.destory()
-        logger.info("Training Done.")
+        self.logger.info("Training Done.")
 
     def setup_output_dir(self):
         """Create a directory used for output.
@@ -283,10 +296,31 @@ class Trainer():
         It is "checkpoints" inside the output directory.
         """
         # checkpoint dir
+        self.checkpointer=Checkpoint(self.logger, self.config["checkpoint"]["kbest_n"],
+                            self.config["checkpoint"]["latest_n"])
+
         checkpoint_dir = self.output_dir / "checkpoints"
         checkpoint_dir.mkdir(exist_ok=True)
 
         self.checkpoint_dir = checkpoint_dir
+    
+    def setup_logger(self):
+        LOG_FORMAT = "%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s"
+        format_str = logging.Formatter('%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+        logging.basicConfig(filename=self.config["training"]["log_path"], 
+                    level=logging.INFO, format=LOG_FORMAT)
+        self.logger = logging.getLogger(__name__)
+        # self.logger = logging.getLogger(self.config["training"]["log_path"].strip().split('/')[-1].split('.')[0])
+        
+        self.logger.setLevel(logging.INFO)#设置日志级别
+        sh = logging.StreamHandler()#往屏幕上输出
+        sh.setFormatter(format_str) #设置屏幕上显示的格式
+        self.logger.addHandler(sh) #把对象加到logger里
+
+        
+        self.logger.info('info')
+        print("setup logger!!!")
+
 
     @mp_tools.rank_zero_only
     def destory(self):
@@ -324,14 +358,22 @@ class Trainer():
 
     def train_batch(self, batch_index, batch_data, msg):
         start = time.time()
+        
         input, label = batch_data
-        # print('-=-------type----')
-        # print(type(label))
-        # print('-------input-----')
-        # print(input)
-        # print(input.shape)
-        label = paddle.reshape(label,shape=[-1])
+        label = paddle.reshape(label, shape=[-1])
         y, logit = self.model(input)
+        pred =  paddle.argmax(logit, axis=1)
+        self.total_label.extend(label.numpy().tolist())
+        self.total_predict.extend(pred.numpy().tolist())
+        # self.total_predict.append(logit.numpy().tolist())
+        # print('--after model----')
+        # # print(label.shape)
+        # # print(pred.shape)
+        # # print('--!!!!!!!!!!!!!----')
+        # print("self.total_label")
+        # print(self.total_label)
+        # print("self.total_predict")
+        # print(self.total_predict)
         loss = self.crit(y, label)
         
         correct = self.metric.compute(logit, label)
@@ -351,8 +393,8 @@ class Trainer():
         msg += ", ".join("{}: {:>.6f}".format(k, v)
                          for k, v in losses_np.items())
         msg += ",acc:{:>.4f}".format(acc)
-        logger.info(msg)
-        print(msg)
+        self.logger.info(msg)
+        # print(msg)
 
         if dist.get_rank() == 0 and self.visualizer:
             for k, v in losses_np.items():
@@ -363,7 +405,7 @@ class Trainer():
     @paddle.no_grad()
     def valid(self):
         metric_vaild = paddle.metric.Accuracy()
-        logger.info(f"Valid Total Examples: {len(self.valid_loader.dataset)}")
+        self.logger.info(f"Valid Total Examples: {len(self.valid_loader.dataset)}")
         self.model.eval()
         valid_losses = defaultdict(list)
         num_seen_utts = 1
@@ -394,25 +436,26 @@ class Trainer():
                 msg += ", ".join("{}: {:>.6f}".format(k, v)
                                  for k, v in valid_dump.items())
                 msg += ",acc:{:>.4f}".format(acc)
-                logger.info(msg)
-                print(msg)
+                self.logger.info(msg)
+                # print(msg)
 
-        logger.info("Rank {} Val info val_loss {}".format(
+        self.logger.info("Rank {} Val info val_loss {}".format(
             dist.get_rank(), total_loss / num_seen_utts))
-        print("Rank {} Val info val_loss {} acc: {}".format(
-            dist.get_rank(), total_loss / num_seen_utts, acc))
+        # print("Rank {} Val info val_loss {} acc: {}".format(
+        #     dist.get_rank(), total_loss / num_seen_utts, acc))
         return total_loss, num_seen_utts
 
     def setup_model(self):
         config = self.config
+        
         model =  DefinedClassifier[self.config["model_type"]](**self.config["model_params"])
         self.crit = DefinedLoss[self.config["loss_type"]](**self.config["loss"]) if "loss_type" in self.config else DefinedLoss["ce"]()
 
         if self.parallel:
             model = paddle.DataParallel(model)
 
-        logger.info(f"{model}")
-        layer_tools.print_params(model, logger.info)
+        self.logger.info(f"{model}")
+        layer_tools.print_params(model, self.logger.info)
 
         lr_scheduler = paddle.optimizer.lr.ExponentialDecay(
             learning_rate=config["training"]["lr"],
@@ -427,50 +470,58 @@ class Trainer():
         self.model = model
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-        logger.info("Setup model/criterion/optimizer/lr_scheduler!")
+        self.logger.info("Setup model/criterion/optimizer/lr_scheduler!")
 
     def setup_dataloader(self):
+        print("setup_dataloader!!!")
         config = self.config["data"].copy()
-        train_dataset = PuncDataset(os.path.join(config["save_path"], "train"), 
-                    os.path.join(config["save_path"], config["vocab_file"]),
-                    os.path.join(config["save_path"], config["punc_file"]),
-                    config["seq_len"])
 
-        dev_dataset = PuncDataset(os.path.join(config["save_path"], "dev"), 
-                    os.path.join(config["save_path"], config["vocab_file"]),
-                    os.path.join(config["save_path"], config["punc_file"]),
-                    config["seq_len"])
+        print(config["batch_size"])
+        
+        train_dataset = DefinedDataset[config["dataset_type"]](train_path=config["train_path"],**config["data_params"])
+        dev_dataset = DefinedDataset[config["dataset_type"]](train_path=config["dev_path"],**config["data_params"])
 
-        if self.parallel:
-            batch_sampler = SortagradDistributedBatchSampler(
-                train_dataset,
-                batch_size=config["batch_size"],
-                num_replicas=None,
-                rank=None,
-                shuffle=True,
-                drop_last=True,
-                sortagrad=config["sortagrad"],
-                shuffle_method=config["shuffle_method"])
-        else:
-            batch_sampler = SortagradBatchSampler(
-                train_dataset,
-                shuffle=True,
-                batch_size=config["batch_size"],
-                drop_last=True,
-                sortagrad=config["sortagrad"],
-                shuffle_method=config["shuffle_method"])
+
+        # train_dataset = config["dataset_type"](os.path.join(config["save_path"], "train"), 
+        #             os.path.join(config["save_path"], config["vocab_file"]),
+        #             os.path.join(config["save_path"], config["punc_file"]),
+        #             config["seq_len"])
+
+        # dev_dataset = PuncDataset(os.path.join(config["save_path"], "dev"), 
+        #             os.path.join(config["save_path"], config["vocab_file"]),
+        #             os.path.join(config["save_path"], config["punc_file"]),
+        #             config["seq_len"])
+
+        # if self.parallel:
+        #     batch_sampler = SortagradDistributedBatchSampler(
+        #         train_dataset,
+        #         batch_size=config["batch_size"],
+        #         num_replicas=None,
+        #         rank=None,
+        #         shuffle=True,
+        #         drop_last=True,
+        #         sortagrad=config["sortagrad"],
+        #         shuffle_method=config["shuffle_method"])
+        # else:
+        #     batch_sampler = SortagradBatchSampler(
+        #         train_dataset,
+        #         shuffle=True,
+        #         batch_size=config["batch_size"],
+        #         drop_last=True,
+        #         sortagrad=config["sortagrad"],
+        #         shuffle_method=config["shuffle_method"])
 
         self.train_loader = DataLoader(
             train_dataset,
-            batch_sampler=batch_sampler,
-            num_workers=config["num_workers"])
+            num_workers=config["num_workers"],
+            batch_size=config["batch_size"])
         self.valid_loader = DataLoader(
             dev_dataset,
             batch_size=config["batch_size"],
             shuffle=False,
             drop_last=False,
             num_workers=config["num_workers"])
-        logger.info("Setup train/valid Dataloader!")
+        self.logger.info("Setup train/valid Dataloader!")
 
 class Tester(Trainer):
     def __init__(self, config, args):
@@ -479,28 +530,62 @@ class Tester(Trainer):
     @mp_tools.rank_zero_only
     @paddle.no_grad()
     def test(self):
-        logger.info(f"Test Total Examples: {len(self.test_loader.dataset)}")
+        self.logger.info(f"Test Total Examples: {len(self.test_loader.dataset)}")
         self.model.eval()
-        metric_vaild = paddle.metric.Accuracy()
+        test_total_label=[]
+        test_total_predict=[]
+        metric_acc = paddle.metric.Accuracy()
+        metric_recall = paddle.metric.Recall()
         with open(self.args.result_file, 'w') as fout:
             for i, batch in enumerate(self.test_loader):
                 input, label = batch
                 label = paddle.reshape(label,shape=[-1])
                 y, logit = self.model(input)
-                correct = metric_vaild.compute(logit, label)
-                metric_vaild.update(correct)
-                acc = metric_vaild.accumulate()
+                pred =  paddle.argmax(logit, axis=1)
+                test_total_label.extend(label.numpy().tolist())
+                test_total_predict.extend(pred.numpy().tolist())
+                # print(type(logit))
+                correct = metric_acc.compute(logit, label)
+                
+                metric_acc.update(correct)
+                tmp1=paddle.argmax(logit, axis=1)==0
+                l1=label==0
+                # print(tmp1)
+                # print(l1)
+                metric_recall.update(tmp1, l1)
+                acc = metric_acc.accumulate()
+                recall = metric_recall.accumulate()
                 
                 # logger.info("acc = %f" % (correct))
-                print(acc)
+                # print("acc = %f, recall=%f" %(acc,recall))
 
         # logging
         msg = "Test: "
         msg += "epoch: {}, ".format(self.epoch)
         msg += "step: {}, ".format(self.iteration)
         msg += "Final acc = %f" % (acc)
-        logger.info(msg)
-        print(msg)
+        msg += "Final recall = %f" % (recall)
+        msg += "Final F1 = %f" % ((2*acc*recall)/(acc+recall))
+        self.logger.info(msg)
+        # print(msg)
+        t = classification_report(test_total_label, test_total_predict, target_names=['konge', '，', '。', '？'])
+        print(t)
+        t2 = self.evaluation(test_total_label, test_total_predict)
+        print(t2)
+
+    def evaluation(self, y_pred, y_test):
+        precision, recall, f1, _ = precision_recall_fscore_support(
+            y_test, y_pred, average=None, labels=[1, 2, 3])
+        overall = precision_recall_fscore_support(
+            y_test, y_pred, average='macro', labels=[1, 2, 3])
+        result = pd.DataFrame(
+            np.array([precision, recall, f1]), 
+            columns=list(['O', 'COMMA', 'PERIOD', 'QUESTION'])[1:], 
+            index=['Precision', 'Recall', 'F1']
+        )
+        result['OVERALL'] = overall[:3]
+        return result
+
 
     def run_test(self):
         self.resume_or_scratch()
@@ -509,12 +594,11 @@ class Tester(Trainer):
         except KeyboardInterrupt:
             exit(-1)
 
-
     def setup(self):
         """Setup the experiment.
         """
         paddle.set_device(self.args.device)
-
+        self.setup_logger()
         self.setup_output_dir()
         self.setup_checkpointer()
 
@@ -529,23 +613,19 @@ class Tester(Trainer):
         model =  DefinedClassifier[self.config["model_type"]](**self.config["model_params"])
         
         self.model = model
-        logger.info("Setup model!")
+        self.logger.info("Setup model!")
 
     def setup_dataloader(self):
         config = self.config["data"].copy()
+        
+        test_dataset = DefinedDataset[config["dataset_type"]](train_path=config["test_path"],**config["data_params"])
 
-        test_dataset = PuncDataset(os.path.join(config["save_path"], "test"), 
-                    os.path.join(config["save_path"], config["vocab_file"]),
-                    os.path.join(config["save_path"], config["punc_file"]),
-                    config["seq_len"])
-
-        # return text ord id
         self.test_loader = DataLoader(
             test_dataset,
             batch_size=config["batch_size"],
             shuffle=False,
             drop_last=False)
-        logger.info("Setup test Dataloader!")
+        self.logger.info("Setup test Dataloader!")
 
     def setup_output_dir(self):
         """Create a directory used for output.
@@ -561,3 +641,19 @@ class Tester(Trainer):
 
         self.output_dir = output_dir
 
+    def setup_logger(self):
+        LOG_FORMAT = "%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s"
+        format_str = logging.Formatter('%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+        logging.basicConfig(filename=self.config["testing"]["log_path"], 
+                    level=logging.INFO, format=LOG_FORMAT)
+        self.logger = logging.getLogger(__name__)
+        # self.logger = logging.getLogger(self.config["training"]["log_path"].strip().split('/')[-1].split('.')[0])
+        
+        self.logger.setLevel(logging.INFO)#设置日志级别
+        sh = logging.StreamHandler()#往屏幕上输出
+        sh.setFormatter(format_str) #设置屏幕上显示的格式
+        self.logger.addHandler(sh) #把对象加到logger里
+
+        
+        self.logger.info('info')
+        print("setup test logger!!!")
