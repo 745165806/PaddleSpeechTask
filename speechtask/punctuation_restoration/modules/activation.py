@@ -16,9 +16,7 @@ from collections import OrderedDict
 import paddle
 from paddle import nn
 
-from deepspeech.utils.log import Log
 
-logger = Log(__name__).getlog()
 
 __all__ = ["get_activation", "brelu", "LinearGLUBlock", "ConvGLUBlock"]
 

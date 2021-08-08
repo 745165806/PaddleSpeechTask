@@ -17,24 +17,10 @@ from paddle import distributed as dist
 from speechtask.punctuation_restoration.training.trainer import Trainer
 from speechtask.punctuation_restoration.utils.default_parser import default_argument_parser
 from speechtask.punctuation_restoration.utils.utility import print_arguments
-from speechtask.punctuation_restoration.io.dataset import PuncDataset
-from speechtask.punctuation_restoration.model.lstm import RnnLm
 
 import yaml
 
 def main_sp(config, args):
-    # print("Load datasets...")
-    # # used for training
-    # train_set = PRDataset(config["dataset"], shuffle=True)
-    # # used for computing validate loss
-    # valid_data = PRDataset(config["dev_set"], batch_size=1000, shuffle=True)[0]
-    # valid_text = config["dev_text"]
-    # test_texts = [config["ref_text"], config["asr_text"]]
-
-    # print("Build models...")
-    # model = RnnLm(config["model"])
-    # model.train(train_set, valid_data, valid_text, test_texts)
-
     exp = Trainer(config, args)
     exp.setup()
     exp.run()

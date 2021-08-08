@@ -14,10 +14,6 @@
 import paddle
 from paddle import nn
 
-from deepspeech.utils.log import Log
-
-logger = Log(__name__).getlog()
-
 __all__ = ['CRF']
 
 
