@@ -42,6 +42,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 运行 run.sh 1 0 conf/train_conf/bertBLSTM_ch.yaml 1
 
 基线结果：
+
     |            |comma ， |period 。 |question ？ |overall  |
     |------------|---------|----------|------------|---------|
     |precision   |0.532847 |0.777691  |0.669261    |0.659933 |
@@ -54,6 +55,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 进入./example/english目录 模型.exp/bertBLSTM_base_en/checkpoints/avg_1  (4)
 
 基线结果：
+
     |            |comma ,  |period .  |question ?  |overall  |
     |------------|---------|----------|------------|---------|
     |precision   |0.672705 |0.844527  |0.717391    |0.744875 |
@@ -67,6 +69,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 进入./example/english目录 模型./exp/bertBLSTM_ch/checkpoints/49
 
 基线结果：
+
     |            |comma ,  |period .  |question ?  |overall  |
     |------------|---------|----------|------------|---------|
     |precision   |
