@@ -21,7 +21,7 @@ echo "checkpoint name ${ckpt}"
 
 if [ $stage -le 0 ]; then 
     if [ $# -eq 5 ]; then
-        data_conf=$5
+        data_pre_conf=$5
         # prepare data
         bash ./local/data.sh ${data_pre_conf} || exit -1
     else

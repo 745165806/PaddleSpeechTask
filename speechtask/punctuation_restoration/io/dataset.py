@@ -123,12 +123,6 @@ class PuncDataset(Dataset):
                 input_data.append(self.word2id.get(token, self.word2id["<UNK>"]))
                 input_r.append(token)
                 label_r.append(punc)
-        # with open(os.path.join(self.save_dir, 'input_lbl'), 'w', encoding='utf-8') as w:
-        #     print('输入数据是：', input_r, file=w)
-        #     print('输出标签是：', label_r, file=w)
-        # with open(os.path.join(self.save_dir, './input_lbl_id'), 'w', encoding='utf-8') as w:
-        #     print('输入数据是：', input_data, file=w)
-        #     print('输出标签是：', label, file=w)
         if len(input_data) != len(label):
             assert 'error: length input_data != label'
         # code below is for using 100 as a hidden size
@@ -225,6 +219,7 @@ class PuncDatasetFromBertTokenizer(Dataset):
             # print(type(x))
 
             input_data.append(x)
+            # print(input_data)
 
 
         if len(input_data) != len(label):

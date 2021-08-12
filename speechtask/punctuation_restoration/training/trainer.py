@@ -28,7 +28,8 @@ from speechtask.punctuation_restoration.utils.checkpoint import Checkpoint
 from speechtask.punctuation_restoration.utils import mp_tools
 from speechtask.punctuation_restoration.model.lstm import RnnLm
 from speechtask.punctuation_restoration.model.blstm import BiLSTM
-from speechtask.punctuation_restoration.model.BertChLinear import BertChineseLinearPunc
+from speechtask.punctuation_restoration.model.BertLinear import BertLinearPunc
+from speechtask.punctuation_restoration.model.BertBLSTM import BertBLSTMPunc
 from speechtask.punctuation_restoration.io.dataset import PuncDataset, PuncDatasetFromBertTokenizer
 from speechtask.punctuation_restoration.utils import layer_tools
 from paddle.io import DataLoader
@@ -39,11 +40,11 @@ from sklearn.metrics import classification_report
 __all__ = ["Trainer"]
 
 
-
 DefinedClassifier = {
     "lstm": RnnLm,
     "blstm": BiLSTM,
-    "BertChLinear": BertChineseLinearPunc
+    "BertLinear": BertLinearPunc,
+    "BertBLSTM": BertBLSTMPunc
 }
 
 DefinedLoss = {
