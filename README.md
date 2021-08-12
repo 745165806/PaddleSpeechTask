@@ -40,7 +40,7 @@ A speech library to deal with a series of related front-end and back-end tasks
   在en-fr文件夹下：  
   `cp train.tags.en-fr.en iwslt2012_train_en`  
   `vim iwslt2012_train_en` 进入iwslt2012_train_en文件  
-  删除1-6行以及最后一行，即只保留<transcript>内容，得到IWSLT2012英文训练文本iwslt2010_train_en  
+  删除1-6行以及最后一行，即只保留\<transcript\>内容，得到IWSLT2012英文训练文本iwslt2010_train_en  
 
 - 3.2 生成IWSLT2012英文验证集dev： 
 
@@ -58,7 +58,7 @@ A speech library to deal with a series of related front-end and back-end tasks
   `cp train.tags.zh-en.zh iwslt2012_train_zh`;  
   `vim iwslt2012_train_zh`;  
   - 进入iwslt2012_train_zh文件  
-  删除1-6行以及最后一行，即只保留<transcript>内容，得到IWSLT2012中文训练文本iwslt2010_train_zh  
+  删除1-6行以及最后一行，即只保留\<transcript\>内容，得到IWSLT2012中文训练文本iwslt2010_train_zh  
   `cat IWSLT12.TALK.dev2010.zh-en.zh.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2010_dev_zh`;  
   得到IWSLT2012中文验证文本iwslt2010_dev_zh  
 
@@ -76,7 +76,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 
   返回2012-03-test目录，同样方法处理得到中文的相应2011和2012年的测试文本iwslt2011_test_zh, iwslt2011_test_zh  
 
-- 5 将处理后的iwslt201*_*_*文本移动至相应的PaddleSpeechTask/data/english/iwslt2012_en和PaddleSpeechTask/data/chinese/iwslt2012_zh
+- 5 将处理后的iwslt201\*_\*_\*文本移动至相应的PaddleSpeechTask/data/english/iwslt2012_en和PaddleSpeechTask/data/chinese/iwslt2012_zh
   
 
 ### 模型：speechtask/punctuation_restoration/model
