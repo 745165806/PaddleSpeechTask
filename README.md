@@ -17,15 +17,18 @@ A speech library to deal with a series of related front-end and back-end tasks
 
 ### iwlst2012数据获取过程：
 - 1 官网IWSLT2012:  
+
   train：https://wit3.fbk.eu/2012-03  
   test: https://wit3.fbk.eu/2012-03-b  
   找到train数据下载链接：https://drive.google.com/file/d/1aTW5gG2xCZbfNy5rOzG7iSJ7TVGywxcx/view?usp=sharing;   
   test数据下载链接：https://drive.google.com/file/d/1974h-vndIdVvJZEz4S3t4gkmaGFARuok/view?usp=sharing
 
-- 2 .tgz文件解压  
+- 2 .tgz文件解压:  
+
   linux系统下，命令为：`tar zxvf 2012-03.tgz`;  `tar zxvf 2012-03-test.tgz`
 
-- 3 cd 2012-03 进入训练集目录，生成训练和验证文本    
+- 3 cd 2012-03 进入训练集目录，生成训练和验证文本  
+  
   `cd texts`   
   `cd en` 进入英文IWSLT训练集  
   `cd fr`  
@@ -33,17 +36,20 @@ A speech library to deal with a series of related front-end and back-end tasks
   `cd en-fr`
   
 - 3.1 生成IWSLT2012英文训练集train：  
+
   在en-fr文件夹下：  
   `cp train.tags.en-fr.en iwslt2012_train_en`  
   `vim iwslt2012_train_en` 进入iwslt2012_train_en文件  
   删除1-6行以及最后一行，即只保留<transcript>内容，得到IWSLT2012英文训练文本iwslt2010_train_en  
 
 - 3.2 生成IWSLT2012英文验证集dev： 
+
   在en-fr文件夹下：   
   `cat IWSLT12.TALK.dev2010.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2010_dev_en`   
   得到IWSLT2012英文验证文本iwslt2010_dev_en  
 
 - 3.3 同样方法生成IWSLT2012中文训练集和验证集：  
+  
   - 返回2012-03/texts目录    
   `cd zh; cd en`;  
   `tar zxvf zh-en.tgz`;  
@@ -57,6 +63,7 @@ A speech library to deal with a series of related front-end and back-end tasks
   得到IWSLT2012中文验证文本iwslt2010_dev_zh  
 
 - 4 退出2012-03训练集目录，进入2012-03-test目录，生成测试文本  
+  
   `cd 2012-03-test`;  
   `cd texts`;  
   `cd en/fr`;   
