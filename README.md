@@ -76,7 +76,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 
   返回2012-03-test目录，同样方法处理得到中文的相应2011和2012年的测试文本iwslt2011_test_zh, iwslt2011_test_zh  
 
-- 5 将处理后的iwslt201\*_\*_\*文本移动至相应的PaddleSpeechTask/data/english/iwslt2012_en和PaddleSpeechTask/data/chinese/iwslt2012_zh
+- 5 将处理后的 iwslt201x_xx_xx 文本移动至相应的PaddleSpeechTask/data/english/iwslt2012_en和PaddleSpeechTask/data/chinese/iwslt2012_zh
   
 
 ### 模型：speechtask/punctuation_restoration/model
