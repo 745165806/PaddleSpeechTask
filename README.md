@@ -1,6 +1,9 @@
 # PaddleSpeechTask
 A speech library to deal with a series of related front-end and back-end tasks  
 
+## 环境
+- python==3.6.13
+- paddle==2.1.1
 
 ## 中/英文文本加标点任务 punctuation restoration：
 
@@ -26,7 +29,7 @@ A speech library to deal with a series of related front-end and back-end tasks
   `cd texts`   
   `cd en` 进入英文IWSLT训练集  
   `cd fr`  
-  `tar zxvf en-fr.tgz`
+  `tar zxvf en-fr.tgz`  
   `cd en-fr`
   
 - 3.1 生成IWSLT2012英文训练集train：  
@@ -48,12 +51,15 @@ A speech library to deal with a series of related front-end and back-end tasks
   `cat IWSLT12.TALK.dev2010.zh-en.zh.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2010_dev_zh` ; 得到IWSLT2012中文验证文本iwslt2010_dev_zh  
 
 - 4 退出2012-03训练集目录，进入2012-03-test目录，生成测试文本  
-  `cd 2012-03-test`;  `cd texts`;  
-  `cd en/fr`; `tar zxvf en-fr.tgz`; `cd en-fr`;  
-  `cat IWSLT12.TED.MT.tst2011.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2011_test_en` ; 得到IWSLT2012英文测试文本iwslt2011_test_en; 也是IWSLT2012比赛 MT任务的官方评测文本 
-  `cat IWSLT12.TED.MT.tst2012.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2012_test_en` ; 得到IWSLT2012英文测试文本iwslt2012_test_en
+  `cd 2012-03-test`;  
+  `cd texts`;  
+  `cd en/fr`;   
+  `tar zxvf en-fr.tgz`;   
+  `cd en-fr`;  
+  `cat IWSLT12.TED.MT.tst2011.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2011_test_en` ; 得到IWSLT2012英文测试文本iwslt2011_test_en; 也是IWSLT2012比赛 MT任务的官方评测文本   
+  `cat IWSLT12.TED.MT.tst2012.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2012_test_en` ; 得到IWSLT2012英文测试文本iwslt2012_test_en  
 
-  返回2012-03-test目录，同样方法处理得到中文的相应2011和2012年的测试文本iwslt2011_test_zh, iwslt2011_test_zh
+  返回2012-03-test目录，同样方法处理得到中文的相应2011和2012年的测试文本iwslt2011_test_zh, iwslt2011_test_zh  
 
 - 5 将处理后的iwslt201*_*_*文本移动至相应的PaddleSpeechTask/data/english/iwslt2012_en和PaddleSpeechTask/data/chinese/iwslt2012_zh
   
