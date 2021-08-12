@@ -19,7 +19,7 @@ A speech library to deal with a series of related front-end and back-end tasks
 - 1 官网IWSLT2012:  
   train：https://wit3.fbk.eu/2012-03  
   test: https://wit3.fbk.eu/2012-03-b  
-  找到train数据下载链接：https://drive.google.com/file/d/1aTW5gG2xCZbfNy5rOzG7iSJ7TVGywxcx/view?usp=sharing；  
+  找到train数据下载链接：https://drive.google.com/file/d/1aTW5gG2xCZbfNy5rOzG7iSJ7TVGywxcx/view?usp=sharing;   
   test数据下载链接：https://drive.google.com/file/d/1974h-vndIdVvJZEz4S3t4gkmaGFARuok/view?usp=sharing
 
 - 2 .tgz文件解压  
@@ -44,11 +44,17 @@ A speech library to deal with a series of related front-end and back-end tasks
   得到IWSLT2012英文验证文本iwslt2010_dev_en  
 
 - 3.3 同样方法生成IWSLT2012中文训练集和验证集：  
-  返回2012-03/texts目录; cd zh; cd en; tar zxvf zh-en.tgz; cd zh-en; 进入zh-en文件夹  
-  `cp train.tags.zh-en.zh iwslt2012_train_zh`  
-  `vim iwslt2012_train_zh` 进入iwslt2012_train_zh文件  
+  - 返回2012-03/texts目录    
+  `cd zh; cd en`;  
+  `tar zxvf zh-en.tgz`;  
+  `cd zh-en`;   
+  - 进入zh-en文件夹  
+  `cp train.tags.zh-en.zh iwslt2012_train_zh`;  
+  `vim iwslt2012_train_zh`;  
+  - 进入iwslt2012_train_zh文件  
   删除1-6行以及最后一行，即只保留<transcript>内容，得到IWSLT2012中文训练文本iwslt2010_train_zh  
-  `cat IWSLT12.TALK.dev2010.zh-en.zh.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2010_dev_zh` ; 得到IWSLT2012中文验证文本iwslt2010_dev_zh  
+  `cat IWSLT12.TALK.dev2010.zh-en.zh.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2010_dev_zh`;  
+  得到IWSLT2012中文验证文本iwslt2010_dev_zh  
 
 - 4 退出2012-03训练集目录，进入2012-03-test目录，生成测试文本  
   `cd 2012-03-test`;  
@@ -56,8 +62,10 @@ A speech library to deal with a series of related front-end and back-end tasks
   `cd en/fr`;   
   `tar zxvf en-fr.tgz`;   
   `cd en-fr`;  
-  `cat IWSLT12.TED.MT.tst2011.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2011_test_en` ; 得到IWSLT2012英文测试文本iwslt2011_test_en; 也是IWSLT2012比赛 MT任务的官方评测文本   
-  `cat IWSLT12.TED.MT.tst2012.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2012_test_en` ; 得到IWSLT2012英文测试文本iwslt2012_test_en  
+  `cat IWSLT12.TED.MT.tst2011.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2011_test_en`;  
+  得到IWSLT2012英文测试文本iwslt2011_test_en, 也是IWSLT2012比赛MT任务的官方评测文本   
+  `cat IWSLT12.TED.MT.tst2012.en-fr.en.xml | grep '<seg' |awk '{for(i=3;i<=NF-1;i++){printf $i" "};print ""}' > iwslt2012_test_en`;  
+  得到IWSLT2012英文测试文本iwslt2012_test_en  
 
   返回2012-03-test目录，同样方法处理得到中文的相应2011和2012年的测试文本iwslt2011_test_zh, iwslt2011_test_zh  
 
