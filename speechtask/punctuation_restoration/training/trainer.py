@@ -20,7 +20,7 @@ from paddle import distributed as dist
 from tensorboardX import SummaryWriter
 import os
 from collections import defaultdict
-from sklearn.metrics import classification_report,precision_recall_fscore_support
+from sklearn.metrics import classification_report,precision_recall_fscore_support,f1_score
 import pandas as pd
 import logging
 
@@ -28,7 +28,8 @@ from speechtask.punctuation_restoration.utils.checkpoint import Checkpoint
 from speechtask.punctuation_restoration.utils import mp_tools
 from speechtask.punctuation_restoration.model.lstm import RnnLm
 from speechtask.punctuation_restoration.model.blstm import BiLSTM
-from speechtask.punctuation_restoration.model.BertChLinear import BertChineseLinearPunc
+from speechtask.punctuation_restoration.model.BertLinear import BertLinearPunc
+from speechtask.punctuation_restoration.model.BertBLSTM import BertBLSTMPunc
 from speechtask.punctuation_restoration.io.dataset import PuncDataset, PuncDatasetFromBertTokenizer
 from speechtask.punctuation_restoration.utils import layer_tools
 from paddle.io import DataLoader
@@ -36,14 +37,14 @@ import numpy as np
 from sklearn.metrics import classification_report
 
 
-__all__ = ["Trainer"]
-
+__all__ = ["Trainer","Tester"]
 
 
 DefinedClassifier = {
     "lstm": RnnLm,
     "blstm": BiLSTM,
-    "BertChLinear": BertChineseLinearPunc
+    "BertLinear": BertLinearPunc,
+    "BertBLSTM": BertBLSTMPunc
 }
 
 DefinedLoss = {
@@ -210,7 +211,6 @@ class Trainer():
     def train(self):
         """The training process control by epoch."""
         from_scratch = self.resume_or_scratch()
-        self.metric = paddle.metric.Accuracy()
         
         if from_scratch:
             # save init model, i.e. 0 epoch
@@ -221,10 +221,13 @@ class Trainer():
             self.train_loader.batch_sampler.set_epoch(self.epoch)
 
         self.logger.info(f"Train Total Examples: {len(self.train_loader.dataset)}")
+        self.punc_list=[]
+        for i in range(len(self.train_loader.dataset.id2punc)):
+            self.punc_list.append(self.train_loader.dataset.id2punc[i])
         while self.epoch < self.config["training"]["n_epoch"]:
             self.model.train()
-            self.total_label=[]
-            self.total_predict=[]
+            self.total_label_train=[]
+            self.total_predict_train=[]
             try:
                 data_start_time = time.time()
                 for batch_index, batch in enumerate(self.train_loader):
@@ -238,32 +241,21 @@ class Trainer():
                     msg += "data time: {:>.3f}s, ".format(dataload_time)
                     self.train_batch(batch_index, batch, msg)
                     data_start_time = time.time()
-                t = classification_report(self.total_label, self.total_predict, target_names=['konge', '，', '。', '？'])
-                print(t)
+                t = classification_report(self.total_label_train, self.total_predict_train, target_names=self.punc_list)
+                self.logger.info(t)
             except Exception as e:
                 self.logger.error(e)
                 raise e
 
-            total_loss, num_seen_utts = self.valid()
-            if dist.get_world_size() > 1:
-                num_seen_utts = paddle.to_tensor(num_seen_utts)
-                # the default operator in all_reduce function is sum.
-                dist.all_reduce(num_seen_utts)
-                total_loss = paddle.to_tensor(total_loss)
-                dist.all_reduce(total_loss)
-                cv_loss = total_loss / num_seen_utts
-                cv_loss = float(cv_loss)
-            else:
-                cv_loss = total_loss / num_seen_utts
-
+            total_loss, F1_score = self.valid()
             self.logger.info(
-                "Epoch {} Val info val_loss {}".format(self.epoch, cv_loss))
+                "Epoch {} Val info val_loss {}, F1_score {}".format(self.epoch, total_loss, F1_score))
             if self.visualizer:
                 self.visualizer.add_scalars(
-                    "epoch", {"cv_loss": cv_loss,
+                    "epoch", {"total_loss": total_loss,
                               "lr": self.lr_scheduler()}, self.epoch)
 
-            self.save(tag=self.epoch, infos={"val_loss": cv_loss})
+            self.save(tag=self.epoch, infos={"val_loss": total_loss, "F1": F1_score})
             # step lr every epoch
             self.lr_scheduler.step()
             self.new_epoch()
@@ -363,8 +355,8 @@ class Trainer():
         label = paddle.reshape(label, shape=[-1])
         y, logit = self.model(input)
         pred =  paddle.argmax(logit, axis=1)
-        self.total_label.extend(label.numpy().tolist())
-        self.total_predict.extend(pred.numpy().tolist())
+        self.total_label_train.extend(label.numpy().tolist())
+        self.total_predict_train.extend(pred.numpy().tolist())
         # self.total_predict.append(logit.numpy().tolist())
         # print('--after model----')
         # # print(label.shape)
@@ -376,9 +368,6 @@ class Trainer():
         # print(self.total_predict)
         loss = self.crit(y, label)
         
-        correct = self.metric.compute(logit, label)
-        self.metric.update(correct)
-        acc = self.metric.accumulate()
         loss.backward()
         layer_tools.print_grads(self.model, print_func=None)
         self.optimizer.step()
@@ -392,7 +381,6 @@ class Trainer():
         msg += "batch size: {}, ".format(self.config["data"]["batch_size"])
         msg += ", ".join("{}: {:>.6f}".format(k, v)
                          for k, v in losses_np.items())
-        msg += ",acc:{:>.4f}".format(acc)
         self.logger.info(msg)
         # print(msg)
 
@@ -404,20 +392,22 @@ class Trainer():
 
     @paddle.no_grad()
     def valid(self):
-        metric_vaild = paddle.metric.Accuracy()
         self.logger.info(f"Valid Total Examples: {len(self.valid_loader.dataset)}")
         self.model.eval()
         valid_losses = defaultdict(list)
         num_seen_utts = 1
         total_loss = 0.0
+        valid_total_label=[]
+        valid_total_predict=[]
         for i, batch in enumerate(self.valid_loader):
             input, label = batch
             label = paddle.reshape(label,shape=[-1])
             y, logit  = self.model(input)
+            pred =  paddle.argmax(logit, axis=1)
+            valid_total_label.extend(label.numpy().tolist())
+            valid_total_predict.extend(pred.numpy().tolist())
             loss = self.crit(y, label)
-            correct = self.metric.compute(logit, label)
-            metric_vaild.update(correct)
-            acc = metric_vaild.accumulate()
+            
             if paddle.isfinite(loss):
                 num_utts = batch[1].shape[0]
                 num_seen_utts += num_utts
@@ -435,7 +425,6 @@ class Trainer():
                 msg += "batch : {}/{}, ".format(i + 1, len(self.valid_loader))
                 msg += ", ".join("{}: {:>.6f}".format(k, v)
                                  for k, v in valid_dump.items())
-                msg += ",acc:{:>.4f}".format(acc)
                 self.logger.info(msg)
                 # print(msg)
 
@@ -443,7 +432,8 @@ class Trainer():
             dist.get_rank(), total_loss / num_seen_utts))
         # print("Rank {} Val info val_loss {} acc: {}".format(
         #     dist.get_rank(), total_loss / num_seen_utts, acc))
-        return total_loss, num_seen_utts
+        F1_score = f1_score(valid_total_label, valid_total_predict, average="macro")
+        return total_loss / num_seen_utts , F1_score
 
     def setup_model(self):
         config = self.config
@@ -531,11 +521,12 @@ class Tester(Trainer):
     @paddle.no_grad()
     def test(self):
         self.logger.info(f"Test Total Examples: {len(self.test_loader.dataset)}")
+        self.punc_list=[]
+        for i in range(len(self.test_loader.dataset.id2punc)):
+            self.punc_list.append(self.test_loader.dataset.id2punc[i])
         self.model.eval()
         test_total_label=[]
         test_total_predict=[]
-        metric_acc = paddle.metric.Accuracy()
-        metric_recall = paddle.metric.Recall()
         with open(self.args.result_file, 'w') as fout:
             for i, batch in enumerate(self.test_loader):
                 input, label = batch
@@ -545,30 +536,14 @@ class Tester(Trainer):
                 test_total_label.extend(label.numpy().tolist())
                 test_total_predict.extend(pred.numpy().tolist())
                 # print(type(logit))
-                correct = metric_acc.compute(logit, label)
-                
-                metric_acc.update(correct)
-                tmp1=paddle.argmax(logit, axis=1)==0
-                l1=label==0
-                # print(tmp1)
-                # print(l1)
-                metric_recall.update(tmp1, l1)
-                acc = metric_acc.accumulate()
-                recall = metric_recall.accumulate()
-                
-                # logger.info("acc = %f" % (correct))
-                # print("acc = %f, recall=%f" %(acc,recall))
 
         # logging
         msg = "Test: "
         msg += "epoch: {}, ".format(self.epoch)
         msg += "step: {}, ".format(self.iteration)
-        msg += "Final acc = %f" % (acc)
-        msg += "Final recall = %f" % (recall)
-        msg += "Final F1 = %f" % ((2*acc*recall)/(acc+recall))
         self.logger.info(msg)
         # print(msg)
-        t = classification_report(test_total_label, test_total_predict, target_names=['konge', '，', '。', '？'])
+        t = classification_report(test_total_label, test_total_predict, target_names=self.punc_list)
         print(t)
         t2 = self.evaluation(test_total_label, test_total_predict)
         print(t2)

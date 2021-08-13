@@ -12,7 +12,7 @@
   `bash get_iwslt2012.sh`
 
 
-## 代码解读：iwlst2012数据获取过程
+## 具体操作解读：iwlst2012数据获取过程
 - 1 官网IWSLT2012:  
 
   train：https://wit3.fbk.eu/2012-03  

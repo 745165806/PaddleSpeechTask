@@ -32,21 +32,21 @@ __all__ = ["Checkpoint"]
 
 
 class Checkpoint():
-    def __init__(self, logger, kbest_n: int=5, latest_n: int=1):
+    def __init__(self, logger, kbest_n: int=5, latest_n: int=1, metric_type='val_loss'):
         self.best_records: Mapping[Path, float] = {}
         self.latest_records = []
         self.kbest_n = kbest_n
         self.latest_n = latest_n
         self._save_all = (kbest_n == -1)
         self.logger=logger
+        self.metric_type=metric_type
 
     def add_checkpoint(self,
                        checkpoint_dir,
                        tag_or_iteration: Union[int, Text],
                        model: paddle.nn.Layer,
                        optimizer: Optimizer=None,
-                       infos: dict=None,
-                       metric_type="val_loss"):
+                       infos: dict=None):
         """Save checkpoint in best_n and latest_n.
         Args:
             checkpoint_dir (str): the directory where checkpoint is saved.
@@ -54,8 +54,9 @@ class Checkpoint():
             model (Layer):  model to be checkpointed.
             optimizer (Optimizer, optional): optimizer to be checkpointed.
             infos (dict or None)):  any info you want to save.
-            metric_type (str, optional): metric type. Defaults to "val_loss".
+            metric_type (str, optional): metric type. Defaults to 'val_loss'.
         """
+        metric_type= self.metric_type
         if (metric_type not in infos.keys()):
             self._save_parameters(checkpoint_dir, tag_or_iteration, model,
                                   optimizer, infos)
