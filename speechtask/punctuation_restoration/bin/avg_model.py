@@ -32,7 +32,7 @@ def main(args):
         for y in jsons:
             with open(y, 'r') as f:
                 dic_json = json.load(f)
-            loss = dic_json['val_loss']
+            loss = dic_json['F1']
             epoch = dic_json['epoch']
             if epoch >= args.min_epoch and epoch <= args.max_epoch:
                 val_scores.append((epoch, loss))
