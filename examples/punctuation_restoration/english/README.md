@@ -13,11 +13,11 @@
 
 ## 实验结果：
 - BertBLSTM
-  - 实验配置：conf/train_conf/bertBLSTM_base_en.yaml
-  - 测试结果：exp/bertBLSTM_base_en/checkpoints/4 
+  - 实验配置：conf/train_conf/bertLinear_en.yaml
+  - 测试结果：exp/bertLinear_en/checkpoints/3.pdparams
 
     |           | COMMA     | PERIOD    | QUESTION  | OVERALL  |  
     |-----------|-----------|-----------|-----------|--------- |  
-    |Precision  |0.617347   |0.700883   |0.641509   |0.653246  |
-    |Recall     |0.678822   |0.804816   |0.739130   |0.740923  |
-    |F1         |0.646627   |0.749263   |0.686869   |0.694253  |  
+    |Precision  |0.673421   |0.647972   |0.782609   |0.701334  |
+    |Recall     |0.721584   |0.856328   |0.720000   |0.765971  |
+    |F1         |0.696671   |0.737721   |0.750000   |0.728131  |  

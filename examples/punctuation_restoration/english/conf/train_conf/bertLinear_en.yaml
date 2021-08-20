@@ -1,5 +1,5 @@
 data:
-  dataset_type: BertLine
+  dataset_type: Bert
   train_path: /data4/mahaoxin/PaddleSpeechTask/examples/punctuation_restoration/english/data/iwslt2012_en/train
   dev_path: /data4/mahaoxin/PaddleSpeechTask/examples/punctuation_restoration/english/data/iwslt2012_en/dev
   test_path: /data4/mahaoxin/PaddleSpeechTask/examples/punctuation_restoration/english/data/iwslt2012_en/test2011
@@ -16,23 +16,24 @@ checkpoint:
   kbest_n: 10
   latest_n: 10
 
-model_type: BertChLinear
-model_params: bert-base-uncased
-  pretrained_token:
+model_type: BertLinear
+model_params: 
+  pretrained_token: bert-base-uncased
   output_size: 4
-  dropout: 0.0
+  dropout: 0.2
   bert_size: 768
+  hiddensize: 1568
 
 training:
-  n_epoch: 100
+  n_epoch: 20
   lr: !!float 1e-5
   lr_decay: 1.0 
   weight_decay: !!float 1e-06
-  global_grad_clip: 5.0
+  global_grad_clip: 3.0
   log_interval: 10
-  log_path: log/train0809.log
+  log_path: log/train_linear0820.log
 
 testing:
-  log_path: log/test2011.log
+  log_path: log/test2011_linear0820.log
 
 
