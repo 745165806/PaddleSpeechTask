@@ -136,6 +136,12 @@ class PuncDataset(Dataset):
         self.label = paddle.to_tensor(np.array(label, dtype='int64').reshape(-1, self.seq_len))
 
 
+# unk_token='[UNK]'
+# sep_token='[SEP]'
+# pad_token='[PAD]'
+# cls_token='[CLS]'
+# mask_token='[MASK]'
+
 class PuncDatasetFromBertTokenizer(Dataset):
     """Representing a Dataset
     superclass
@@ -143,11 +149,11 @@ class PuncDatasetFromBertTokenizer(Dataset):
     data.Dataset :
         Dataset is a abstract class, representing the real data.
     """
-    def __init__(self, train_path, pretrained_token, punc_path, seq_len=100):
+    def __init__(self, train_path, is_eval, pretrained_token, punc_path, seq_len=100):
         # 检查文件是否存在
         print(train_path)
-        self.tokenizer =  BertTokenizer.from_pretrained(pretrained_token, do_lower_case=True)
-
+        self.tokenizer = BertTokenizer.from_pretrained(pretrained_token, do_lower_case=True)
+        self.paddingID = self.tokenizer.pad_token_id
         assert os.path.exists(train_path), "train文件不存在"
         assert os.path.exists(punc_path), "标点文件不存在"
         self.seq_len = seq_len
@@ -163,7 +169,10 @@ class PuncDatasetFromBertTokenizer(Dataset):
         # print(self.txt_seqs[:10])
         # with open('./txt_seq', 'w', encoding='utf-8') as w:
         #     print(self.txt_seqs, file=w)
-        self.preprocess(self.txt_seqs)
+        if(is_eval):
+            self.preprocess(self.txt_seqs)
+        else:
+            self.preprocess_shift(self.txt_seqs)
         print("data len: %d" % (len(self.input_data)))
         print('---punc-')
         print(self.punc2id)
@@ -206,20 +215,19 @@ class PuncDatasetFromBertTokenizer(Dataset):
             punc = txt_seqs[i+1]
             if word in self.punc2id:
                 continue
+            
+            token = self.tokenizer(word)
+            x = token["input_ids"][1:-1]
+            input_data.extend(x)
 
             if punc not in self.punc2id:
                 # print('标点{}：'.format(count), self.punc2id[" "])
-                label.append(self.punc2id[" "])
+                for i in range(len(x)):
+                    label.append(self.punc2id[" "])
             else:
-                label.append(self.punc2id[punc])
+                for i in range(len(x)):
+                    label.append(self.punc2id[punc])
 
-            token = self.tokenizer(word)
-            x = token["input_ids"][1]
-            # print(x)
-            # print(type(x))
-
-            input_data.append(x)
-            # print(input_data)
 
 
         if len(input_data) != len(label):
@@ -241,6 +249,69 @@ class PuncDatasetFromBertTokenizer(Dataset):
         self.input_data = paddle.to_tensor(np.array(input_data, dtype='int64').reshape(-1, self.seq_len))  #, dtype='int64'
         self.label = paddle.to_tensor(np.array(label, dtype='int64').reshape(-1, self.seq_len)) #, dtype='int64'
 
+    def preprocess_shift(self, txt_seqs: list):
+        """将文本转为单词和应预测标点的id pair
+        Parameters
+        ----------
+        txt : 文本
+            文本每个单词跟随一个空格，符号也跟一个空格
+        """
+        input_data = []
+        label = []
+        # txt_seqs is a list like: ['char', 'char', 'char', '*，*', 'char', ......]
+        count = 0
+        for i in range(len(txt_seqs)-1):
+            word = txt_seqs[i]
+            punc = txt_seqs[i+1]
+            if word in self.punc2id:
+                continue
+            
+            token = self.tokenizer(word)
+            x = token["input_ids"][1:-1]
+            input_data.extend(x)
+
+            if punc not in self.punc2id:
+                # print('标点{}：'.format(count), self.punc2id[" "])
+                for i in range(len(x)):
+                    label.append(self.punc2id[" "])
+            else:
+                for i in range(len(x)):
+                    label.append(self.punc2id[punc])
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+
+        if len(input_data) != len(label):
+            assert 'error: length input_data != label'
+        
+        # print(len(input_data[0]))
+        # print(len(label))
+        start=0
+        processed_data=[]
+        processed_label=[]
+        while(start<len(input_data)-self.seq_len):
+            # end=start+self.seq_len
+            end=random.randint(start+self.seq_len//2, start+self.seq_len)
+            processed_data.append(input_data[start:end])
+            processed_label.append(label[start:end])
+            
+            start=start+random.randint(1,self.seq_len//2)
+
+
+        self.in_len = len(processed_data)
+        # # print(input_data)
+        # print(type(input_data))
+        # tmp=np.array(input_data)
+        # print('--~~~~~~~~~~~~~')
+        # print(type(tmp))
+        # print(tmp.shape)
+        self.input_data = processed_data
+        #paddle.to_tensor(np.array(processed_data, dtype='int64'))  #, dtype='int64'
+        self.label = processed_label
+        #paddle.to_tensor(np.array(processed_label, dtype='int64')) #, dtype='int64'
+
+
 
 if __name__ == '__main__':
     dataset=PuncDataset()
+
+

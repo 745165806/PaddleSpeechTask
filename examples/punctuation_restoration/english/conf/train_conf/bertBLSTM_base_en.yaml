@@ -24,7 +24,7 @@ model_params:
   bert_size: 768
   blstm_size: 128
   num_blstm_layers: 2
-  init_scale: 0.1
+  init_scale: 0.2
 # model_type: BertChLinear
 # model_params:
 #   pretrained_token: bert-large-uncased
