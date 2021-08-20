@@ -18,15 +18,13 @@ checkpoint:
   metric_type: F1
 
 
-model_type: BertBLSTM
+model_type: BertLinear
 model_params:
-  pretrained_token: bert-base-chinese
+  pretrained_token: bert-base-uncased
   output_size: 4
-  dropout: 0.0
+  dropout: 0.2
   bert_size: 768
-  blstm_size: 128
-  num_blstm_layers: 2
-  init_scale: 0.1
+  hiddensize: 1568
 
 
 training:

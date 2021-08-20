@@ -24,18 +24,3 @@ A speech library to deal with a series of related front-end and back-end tasks
 
 3.BertBLSTM模型
 
-### 实验结果
-- 基线：
- 
-- 英文 BertBLSTM Model  pretrain_model:bert-base-uncased
-  
-进入./example/english目录 模型.exp/bertBLSTM_base_en/checkpoints/avg_1  (4)
-
-基线结果：
-
-    |            |comma ,  |period .  |question ?  |overall  |
-    |------------|---------|----------|------------|---------|
-    |precision   |0.672705 |0.844527  |0.717391    |0.744875 |
-    |recall      |0.679268 |0.781358  |0.647059    |0.702562 |
-    |F1          |0.675971 |0.811715  |0.680412    |0.722700 |
-
