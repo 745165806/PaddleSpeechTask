@@ -220,13 +220,14 @@ class PuncDatasetFromBertTokenizer(Dataset):
             x = token["input_ids"][1:-1]
             input_data.extend(x)
 
+            for i in range(len(x)-1):
+                label.append(self.punc2id[" "])
+
             if punc not in self.punc2id:
                 # print('标点{}：'.format(count), self.punc2id[" "])
-                for i in range(len(x)):
-                    label.append(self.punc2id[" "])
+                label.append(self.punc2id[" "])
             else:
-                for i in range(len(x)):
-                    label.append(self.punc2id[punc])
+                label.append(self.punc2id[punc])
 
 
 
@@ -270,14 +271,14 @@ class PuncDatasetFromBertTokenizer(Dataset):
             x = token["input_ids"][1:-1]
             input_data.extend(x)
 
+            for i in range(len(x)-1):
+                label.append(self.punc2id[" "])
+
             if punc not in self.punc2id:
                 # print('标点{}：'.format(count), self.punc2id[" "])
-                for i in range(len(x)):
-                    label.append(self.punc2id[" "])
+                label.append(self.punc2id[" "])
             else:
-                for i in range(len(x)):
-                    label.append(self.punc2id[punc])
-
+                label.append(self.punc2id[punc])
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 
         if len(input_data) != len(label):
