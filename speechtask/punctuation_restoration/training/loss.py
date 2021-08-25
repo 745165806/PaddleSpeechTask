@@ -3,10 +3,9 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 
 
-# ??from paddle.autograd import Variable
 
 
-class FocalLoss(nn.Layer):
+class FocalLossHX(nn.Layer):
     def __init__(self, gamma=0, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
@@ -38,10 +37,50 @@ class FocalLoss(nn.Layer):
         # print('ce')
         # print(ce.shape)
 
-
         
         loss = (1-pt)**self.gamma * ce
         # print('ce:%f'%ce.mean())
         # print('fl:%f'%loss.mean())
         if self.size_average: return loss.mean()
         else: return loss.sum()
+
+
+import numpy as np
+
+
+class FocalLoss(nn.Layer):
+    """
+    Focal Loss.
+    Code referenced from:
+    https://github.com/clcarwin/focal_loss_pytorch/blob/master/focalloss.py
+    Args:
+        gamma (float): the coefficient of Focal Loss.
+        ignore_index (int64): Specifies a target value that is ignored
+            and does not contribute to the input gradient. Default ``255``.
+    """
+
+    def __init__(self, gamma=2.0):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+
+    def forward(self, logit, label):
+        #####logit = F.softmax(logit)
+        # logit = paddle.reshape(
+        #     logit, [logit.shape[0], logit.shape[1], -1])  # N,C,H,W => N,C,H*W
+        # logit = paddle.transpose(logit, [0, 2, 1])  # N,C,H*W => N,H*W,C
+        # logit = paddle.reshape(logit,
+        #                        [-1, logit.shape[2]])  # N,H*W,C => N*H*W,C
+        label = paddle.reshape(label, [-1, 1])
+        range_ = paddle.arange(0, label.shape[0])
+        range_ = paddle.unsqueeze(range_, axis=-1)
+        label = paddle.cast(label, dtype='int64')
+        label = paddle.concat([range_, label], axis=-1)
+        logpt = F.log_softmax(logit)
+        logpt = paddle.gather_nd(logpt, label)
+
+        pt = paddle.exp(logpt.detach())
+        loss = -1 * (1 - pt)**self.gamma * logpt
+        loss = paddle.mean(loss)
+        # print(loss)
+        # print(logpt)
+        return loss
